@@ -8,8 +8,7 @@ The test starts by creating a reasonably sized DOM hierarchy with 10 DIV hierarc
 
 A delegated event, attached to `document`, is added to each link.
 
-One link is chosen at random from the entire collection of available links and clicked 15 times programmatically.
-
+One link is chosen at random from the entire collection of available links. All events are cleared from it and it is then clicked 15 times programmatically for each of the four patterns.
 
 ### Pattern 1
 
@@ -53,4 +52,4 @@ Pattern 3 --> 3589 ms
 Pattern 4 --> 3496 ms
 ```
 
-_(Firefox 47, Fedora 23, Intel i5-2500k, 16GB RAM)_
+_Firefox 47, Fedora 23, Intel i5-2500k, 16GB RAM_
