@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en-US">
+	<head>
+		<meta charset="utf-8">
+		<title>jQuery event test</title>
+		<meta name="author" content="Marceau Dewilde">
+		<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+		<script>
+			var test = (function(){
+	
+				var numHierarchies = 10;
+				var hierarchyDepth = 15;
+				var linksPerDiv = 4;
+				var numClicks = 15;
+				var timeout = 25;
+				
+				function test() {
+		
+					$('#messages').empty();
+					
+					$('input').attr('disabled', 'disabled');
+					$('input').off('click', test);
+					$('input').val('running');
+					
+		
+					setTimeout(function() {
+							testStart();
+						}, timeout);
+		
+				}
+		
+				/**
+				 * Chaining tests interspersed with setTimeout to allow DOM manipulation during testing.
+				 * http://stackoverflow.com/questions/16876394/dom-refresh-on-long-running-function
+				 */
+				function testStart() {
+					newHierarchy();
+					
+					// get random link from hierarchy
+					var as = $('#testbase').find('a');
+					var a = as.get(Math.floor(Math.random() * as.length));
+					a = $(a);
+					setTimeout(function() {
+						direct(a);
+					}, timeout);
+				}
+		
+				function direct(node) {
+					reset(node);
+					node.on('click', function(e) {
+						clickAction();
+					});
+					run(node, "attached directly");
+					setTimeout(function() {
+						directPropagation(node);
+					}, timeout);
+				}
+		
+				function directPropagation(node) {
+					reset(node);
+					node.on('click', function(e) {
+						e.stopPropagation();
+						clickAction();
+					});
+					run(node, "attached directly + stopPropagation");
+					setTimeout(function() {
+						delegated(node);
+					}, timeout);
+				}
+		
+				function delegated(node) {
+					reset(node);
+					$(document).on('click', '.' + node.prop('classList')[0],
+							function(e) {
+								clickAction();
+							});
+					run(node, "delegated");
+					setTimeout(function() {
+						delegatedPropagation(node);
+					}, timeout);
+				}
+		
+				function delegatedPropagation(node) {
+					reset(node);
+					$(document).on('click', '.' + node.prop('classList')[0],
+							function(e) {
+								e.stopPropagation();
+								clickAction();
+							});
+					run(node, "delegated + stopPropagation");
+					setTimeout(function() {
+						stopTest();
+					}, timeout);
+				}
+		
+				function stopTest() {
+					$('input').removeAttr('disabled');
+					$('input').on('click', test);
+					$('input').val('TEST');
+		
+				}
+				
+				/**
+				* Generate a random string with given length
+				*/
+				function random(length) {
+					var text = "";
+					var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+		
+					for (var i = 0; i < length; i++) {
+						text += possible.charAt(Math.floor(Math.random() * possible.length));
+					}
+					
+					return text;
+				}
+				
+				/**
+				*  Generate multiple hierarchies of nested divs.
+				*  Assign a random classes to each div.
+				*  Add a number of links to each div.
+				*/
+				function newHierarchy() {
+					$('#testbase').empty();
+					var last;
+					for (var i = 0; i < numHierarchies; i++) {
+						var baseDiv = $(document.createElement('div')).addClass(random(15)).addClass(random(15)).addClass(random(15)).appendTo('#testbase');
+						baseDiv.append(newLinks());
+						for (var j = 0; j < hierarchyDepth; j++) {
+							var div = $(document.createElement('div')).addClass(random(15)).addClass(random(15)).addClass(random(15));
+							baseDiv.append(div);
+							div.append(newLinks());
+							baseDiv = div;
+							last = div
+						}
+					}
+					write('created ' + numHierarchies + ' DIV hierarchies with depth of ' + hierarchyDepth + ' and ' + linksPerDiv + ' links in each DIV');
+					write('test base contains ' + $('#testbase').find('div').length + ' DIVs and ' + $('#testbase').find('a').length + ' links');
+				}
+		
+				/**
+				* Create #linksPerDiv new links with 3 random 15 character classes each and a delegated click event handler attached to each.
+				*/	
+				function newLinks() {
+					var links = $();
+					for (var i = 0; i < linksPerDiv; i++) {
+		
+						var clazz = random(15);
+						var a = $(document.createElement('a')).attr('href', '#').addClass(clazz).addClass(random(15)).addClass(random(15));
+		
+						a.text(random(35));
+						
+						$(document).on('click', '.' + clazz, function(e) {
+							e.preventDefault();
+							console.log(clazz);
+						});
+			
+						links = links.add(a);
+						links = links.add(document.createElement('br'));
+					}
+					return links;
+				}
+				
+				/**
+				* Reset the state of the given div (to pre-test state)
+				*/
+				function reset(node) {
+					node.prop('classList')[0];
+					node.off('click');
+					$(document).off('click', '.' + node.prop('classList')[0]);
+					node.text(random(35));
+					write('reset node to pre-test state');
+				}
+		
+				/**
+				* Run the actual test by clicking the given div #numClicks times
+				*/
+				function run(node, message) {
+					var before = Date.now();
+					for (var i = 0; i < numClicks; i++) {
+						node.click();
+					}
+					write('Test result for ' + numClicks + ' clicks: ' + message + ' ---> ' + (Date.now() - before) + ' ms');
+				}
+				
+				function clickAction() {
+					$(this).text(random(1));
+				}
+		
+				function write(message) {
+					$(document.createElement('div')).text(message)
+							.appendTo('#messages');
+				}
+		
+				return test;
+				
+			})();
+			
+			$(function() {
+				$('input').on('click', test);
+			});
+		</script>
+		<style>
+			body {
+				margin: 0;
+				padding: 0;
+				font-family: Verdana, sans-serif;
+			}
+			
+			#messages {
+				position: relative;
+				bottom: top;
+				left: 0;
+				background-color: #ffffe0;
+				border-bottom: solid 1px #888;
+				padding: 1em;
+				width: 100%;
+				line-height: 1.75;
+			}
+			
+			input {
+				margin: 1em;
+			}
+			
+			#testbase {
+				padding: 1em;
+			}
+		</style>
+	</head>
+	<body>
+	
+		<div id="messages"></div>
+	
+		<input type="button" value="TEST">
+	
+		<div id="testbase"></div>
+		
+	</body>
+</html>
